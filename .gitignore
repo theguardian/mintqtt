@@ -1,0 +1,31 @@
+#  User Related   #
+######################
+data/*
+static/images/server.png
+
+#  Compiled source   #
+######################
+*.py[co]
+__pycache__
+
+#  IDE specific      #
+######################
+*.bak
+*.tmp
+*.wpr
+*.project
+*.cproject
+*.tmproj
+*.tmproject
+
+# OS generated files #
+######################
+.Spotlight-V100
+.Trashes
+*DS_Store
+._*
+desktop.ini
+ehthumbs.db
+Thumbs.db
+.directory
+*~
