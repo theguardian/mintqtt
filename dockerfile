@@ -1,8 +1,9 @@
 # The line below states we will base our new image on the Latest Official Ubuntu
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # Install important packages (git, python, etc)
-RUN apt-get update && apt-get install python3.8 python3.8-dev python3.8-distutils python3-pip git gcc -y
+RUN apt-get update && apt-get install python3.10 python3.10-dev python3.10-distutils python3-pip git gcc tzdata chromium-browser 
+chromium-chromedriver libmariadb-dev-compat libmariadb-dev -y
 
 # Identify the maintainer of an image
 LABEL maintainer="justin.evans@gmail.com"
@@ -11,10 +12,10 @@ LABEL maintainer="justin.evans@gmail.com"
 WORKDIR /srv
 
 # Clone CherryStrap
-RUN git clone https://github.com/theguardian/cherrystrap
+RUN git clone https://github.com/theguardian/mintqtt
 
 # Establish Workdir
-WORKDIR /srv/cherrystrap
+WORKDIR /srv/mintqtt
 
 # Install necessary python packages
 RUN pip3 install -r requirements.txt

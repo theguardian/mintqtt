@@ -40,9 +40,6 @@ class settings(object):
             "git": {
                 "gitEnabled": bool(cherrystrap.GIT_ENABLED),
                 "gitPath": cherrystrap.GIT_PATH,
-                "gitUser": cherrystrap.GIT_USER,
-                "gitRepo": cherrystrap.GIT_REPO,
-                "gitBranch": cherrystrap.GIT_BRANCH,
                 "gitUpstream": cherrystrap.GIT_UPSTREAM,
                 "gitLocal": cherrystrap.GIT_LOCAL,
                 "gitStartup": bool(cherrystrap.GIT_STARTUP),
@@ -159,12 +156,6 @@ class settings(object):
             cherrystrap.GIT_ENABLED = kwargs.pop('gitEnabledHidden', False) == 'true'
         if 'gitPath' in kwargs:
             cherrystrap.GIT_PATH = kwargs.pop('gitPath', None)
-        if 'gitUser' in kwargs:
-            cherrystrap.GIT_USER = kwargs.pop('gitUser', 'theguardian')
-        if 'gitRepo' in kwargs:
-            cherrystrap.GIT_REPO = kwargs.pop('gitRepo', 'CherryStrap')
-        if 'gitBranch' in kwargs:
-            cherrystrap.GIT_BRANCH = kwargs.pop('gitBranch', 'master')
         if 'gitUpstream' in kwargs:
             cherrystrap.GIT_UPSTREAM = kwargs.pop('gitUpstream', None)
         if 'gitLocal' in kwargs:

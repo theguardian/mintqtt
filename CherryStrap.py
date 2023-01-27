@@ -6,7 +6,7 @@ from cherrystrap import webStart, logger
 def main():
 
     # rename this thread
-    threading.currentThread().name = "MAIN"
+    threading.current_thread().name = "MAIN"
 
     # Set paths
     if hasattr(sys, 'frozen'):

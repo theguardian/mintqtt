@@ -65,7 +65,7 @@ class RotatingLogger(object):
 
         logger = logging.getLogger('cherrystrap')
 
-        threadname = threading.currentThread().getName()
+        threadname = threading.current_thread().getName()
 
         if message[0]!="{":
             message = json.dumps(message)

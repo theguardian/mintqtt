@@ -16,6 +16,8 @@ from apscheduler.triggers.cron import CronTrigger
 from cherrystrap import logger, formatter, versioncheck
 from cherrystrap.configCheck import CheckSection, check_setting_int, check_setting_bool, check_setting_str
 from cherrystrap.initializeDb import createDb
+import appfiles
+
 
 FULL_PATH = None
 PROG_DIR = None
@@ -35,6 +37,7 @@ INIT_LOCK = threading.Lock()
 __INITIALIZED__ = False
 
 DATADIR = None
+CACHEDIR = None
 DBFILE = None
 CONFIGFILE = None
 CFG = None
@@ -49,7 +52,7 @@ LOGLIST = []
 APP_NAME = None
 HTTP_ROOT = None
 HTTP_HOST = None
-HTTP_PORT = None
+HTTP_PORT = 7889
 HTTPS_ENABLED = False
 HTTPS_KEY = None
 HTTPS_CERT = None
@@ -63,14 +66,11 @@ API_TOKEN = None
 
 DATABASE_TYPE = None
 MYSQL_HOST = None
-MYSQL_PORT = None
+MYSQL_PORT = 3306
 MYSQL_USER = None
 MYSQL_PASS = None
 
 GIT_EXISTS = False
-GIT_USER = None
-GIT_REPO = None
-GIT_BRANCH = None
 GIT_UPSTREAM = None
 GIT_LOCAL = None
 GIT_OVERRIDE = False
@@ -84,12 +84,12 @@ def initialize():
     with INIT_LOCK:
 
         global __INITIALIZED__, FULL_PATH, PROG_DIR, LOGLEVEL, DAEMON, \
-        DATADIR, CONFIGFILE, CFG, LOGDIR, APP_NAME, HTTP_HOST, HTTP_PORT, \
+        DATADIR, CACHEDIR, CONFIGFILE, CFG, LOGDIR, APP_NAME, HTTP_HOST, HTTP_PORT, \
         HTTP_USER, HTTP_PASS, HTTP_ROOT, HTTP_LOOK, VERIFY_SSL, \
         LAUNCH_BROWSER, HTTPS_ENABLED, HTTPS_KEY, HTTPS_CERT, API_TOKEN, \
         DATABASE_TYPE, MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASS, \
-        GIT_ENABLED, GIT_PATH, GIT_BRANCH, GIT_USER, GIT_STARTUP, GIT_INTERVAL, \
-        GIT_OVERRIDE, GIT_REPO, GIT_UPSTREAM, GIT_LOCAL, GIT_EXISTS
+        GIT_ENABLED, GIT_PATH, GIT_STARTUP, GIT_INTERVAL, \
+        GIT_OVERRIDE, GIT_UPSTREAM, GIT_LOCAL, GIT_EXISTS
 
         if __INITIALIZED__:
             return False
@@ -124,23 +124,23 @@ def initialize():
             except OSError:
                 logger.error('Could not create cachedir. Check permissions of: ' + DATADIR)
 
-        GIT_EXISTS = os.path.isdir(os.path.join(DATADIR, '.git'))
+        GIT_EXISTS = os.path.isdir(os.path.join(PROG_DIR, '.git'))
 
         # Attempt to find location of git in this environment
         if GIT_EXISTS:
             output = err = None
             cmd = 'which git'
             try:
-                logger.debug('Trying to execute: "' + cmd + '" with shell in ' + os.getcwd())
+                logger.info('Trying to execute: "' + cmd + '" with shell in ' + os.getcwd())
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, cwd=os.getcwd())
                 output, err = p.communicate()
                 output = output.decode('utf-8').strip()
-                logger.debug('Git output: ' + output)
+                logger.info('Git output: ' + output)
             except OSError:
-                logger.debug('Command failed: %s', cmd)
+                logger.info('Command failed: %s', cmd)
 
             if not output or 'not found' in output or "not recognized as an internal or external command" in output:
-                logger.debug('Unable to find git with command ' + cmd)
+                print('Unable to find git with command ' + cmd)
                 git_enabled = False
                 git_path = ''
                 git_startup = False
@@ -186,13 +186,10 @@ def initialize():
 
         GIT_ENABLED = check_setting_bool(CFG, 'Git', 'gitEnabled', git_enabled)
         GIT_PATH = check_setting_str(CFG, 'Git', 'gitPath', git_path)
-        GIT_USER = check_setting_str(CFG, 'Git', 'gitUser', 'theguardian')
-        GIT_REPO = check_setting_str(CFG, 'Git', 'gitRepo', 'CherryStrap')
-        GIT_BRANCH = check_setting_str(CFG, 'Git', 'gitBranch', 'master')
         GIT_UPSTREAM = check_setting_str(CFG, 'Git', 'gitUpstream', '')
         GIT_LOCAL = check_setting_str(CFG, 'Git', 'gitLocal', '')
         GIT_STARTUP = check_setting_bool(CFG, 'Git', 'gitStartup', git_startup)
-        GIT_INTERVAL = check_setting_int(CFG, 'Git', 'gitInterval', git_interval)
+        GIT_INTERVAL = check_setting_int(CFG, 'Git', 'gitInterval', 0)
         GIT_OVERRIDE = check_setting_bool(CFG, 'Git', 'gitOverride', False)
 
         #===============================================================
@@ -281,7 +278,7 @@ def daemonize():
         if pid != 0:
             sys.exit(0)
     except OSError as e:
-        raise RuntimeError("2st fork failed: %s [%d]" % (e.strerror, e.errno))
+        raise RuntimeError("2nd fork failed: %s [%d]" % (e.strerror, e.errno))
 
     dev_null = open('/dev/null', 'r')
     os.dup2(dev_null.fileno(), sys.stdin.fileno())
@@ -338,9 +335,6 @@ def config_write():
     new_config['Git'] = {}
     new_config['Git']['gitEnabled'] = GIT_ENABLED
     new_config['Git']['gitPath'] = GIT_PATH
-    new_config['Git']['gitUser'] = GIT_USER
-    new_config['Git']['gitRepo'] = GIT_REPO
-    new_config['Git']['gitBranch'] = GIT_BRANCH
     new_config['Git']['gitUpstream'] = GIT_UPSTREAM
     new_config['Git']['gitLocal'] = GIT_LOCAL
     new_config['Git']['gitStartup'] = GIT_STARTUP
@@ -358,24 +352,58 @@ def config_write():
 
     new_config.write()
 
+def build_scheduler():
+    scheduleRunner = None
+    if appfiles.SCHEDULER_TYPE != "":
+        if appfiles.SCHEDULER_TYPE == 'interval' and appfiles.SCHEDULER_UNITS == 'hours':
+            scheduleRunner = IntervalTrigger(weeks=0, days=0, hours=appfiles.SCHEDULER_FREQUENCY, minutes=0, seconds=0, start_date=None, end_date=None, timezone=None)
+        elif appfiles.SCHEDULER_TYPE == 'interval' and appfiles.SCHEDULER_UNITS == 'minutes':
+            scheduleRunner = IntervalTrigger(weeks=0, days=0, hours=0, minutes=appfiles.SCHEDULER_FREQUENCY, seconds=0, start_date=None, end_date=None, timezone=None)
+        elif appfiles.SCHEDULER_TYPE == 'cron':
+            try:
+                cronList = appfiles.SCHEDULER_CRON.split(' ')
+                minute = cronList[0]
+                hour = cronList[1]
+                DOM = cronList[2]
+                MOY = cronList[3]
+                DOW = cronList[4]
+                scheduleRunner = CronTrigger(year=None, month=MOY, day=DOM, week=None, day_of_week=DOW, hour=hour, minute=minute, second=None, start_date=None, end_date=None, timezone=None)
+            except Exception as e:
+                logger.error("Problem defining scheduler cronjob: %s" % e)
+
+    return scheduleRunner
+
+
 def start():
     global __INITIALIZED__, scheduler_started
 
     if __INITIALIZED__:
 
         try:
-            # Crons and scheduled jobs go here
-            # testInterval = IntervalTrigger(weeks=0, days=0, hours=0, minutes=2, seconds=0, start_date=None, end_date=None, timezone=None)
-            # testCron = CronTrigger(year=None, month=None, day=None, week=None, day_of_week=None, hour=None, minute='*/2', second=None, start_date=None, end_date=None, timezone=None)
-            # SCHED.add_job(formatter.schedulerTest, testCron)
+
             if GIT_ENABLED and GIT_INTERVAL != 0:
                 gitInterval = IntervalTrigger(weeks=0, days=0, hours=GIT_INTERVAL, minutes=0, seconds=0, start_date=None, end_date=None, timezone=None)
                 SCHED.add_job(versioncheck.checkGithub, gitInterval)
+            
+            if build_scheduler():
+                try:
+                    from appfiles.mintqtt import schedule_mint
+                    SCHED.add_job(lambda: schedule_mint(), build_scheduler())
+                except Exception as e:
+                    logger.error("Can't build scheduled job(s): %s" % e)
 
             SCHED.start()
             for job in SCHED.get_jobs():
                 logger.info("Job scheduled: %s" % job)
             scheduler_started = True
+
+            if appfiles.RUN_ON_BOOT:
+                try:
+                    from appfiles.mintqtt import schedule_mint
+                    schedule_mint()
+                except Exception as e:
+                    logger.error("Can't start job: %s" % e)
+
         except Exception as e:
             logger.error("Can't start scheduled job(s): %s" % e)
 

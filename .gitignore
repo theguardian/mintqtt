@@ -2,6 +2,8 @@
 ######################
 data/*
 static/images/server.png
+chromedriver
+License.chromedriver
 
 #  Compiled source   #
 ######################
