@@ -4,7 +4,6 @@ from cherrypy.lib.static import serve_file
 import simplejson as json
 from cherrystrap.auth import AuthController, require, member_of, name_is
 from cherrystrap.templating import serve_template
-from appfiles.mintqtt import run_mint
 
 import threading, time
 

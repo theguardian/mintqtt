@@ -11,6 +11,7 @@ import simplejson as json
 from urllib.request import urlopen
 
 from cherrystrap import logger
+import appfiles
 
 def runGit(args):
 

@@ -17,6 +17,7 @@
     <li><a href="#mintapi-config" data-toggle="tab">MintAPI</a></li>
     <li><a href="#mqtt-config" data-toggle="tab">MQTT</a></li>
     <li><a href="#scheduler-config" data-toggle="tab">Scheduler</a></li>
+    <li><a href="#selector-config" data-toggle="tab">Data Selection</a></li>
 </ul>
 <form id="config_form">
   <div class="row col-md-12 tab-content">
@@ -344,6 +345,52 @@
       </div>
     </div>
 
+    <div class="tab-pane" id="selector-config">
+      <br/>
+      <div class="row">
+        <div class="col-md-6 form-group">
+          <label for="fetchAccounts">&nbsp;Accounts</label>
+          <input type="hidden" name="fetchAccountsHidden" value="false" id="fetchAccountsHidden">
+          <input type="checkbox" name="fetchAccounts" value="true" class="checkbox pull-left" id="fetchAccounts">
+        </div>
+        <div class="col-md-6 form-group">
+          <label for="fetchNetWorth">&nbsp;Net Worth</label>
+          <input type="hidden" name="fetchNetWorthHidden" value="false" id="fetchNetWorthHidden">
+          <input type="checkbox" name="fetchNetWorth" value="true" class="checkbox pull-left" id="fetchNetWorth">
+        </div>
+        <div class="col-md-6 form-group">
+          <label for="fetchCreditScore">&nbsp;Credit Score</label>
+          <input type="hidden" name="fetchCreditScoreHidden" value="false" id="fetchCreditScoreHidden">
+          <input type="checkbox" name="fetchCreditScore" value="true" class="checkbox pull-left" id="fetchCreditScore">
+        </div>
+         <div class="col-md-6 form-group">
+          <label for="fetchBudgets">&nbsp;Budgets</label>
+          <input type="hidden" name="fetchBudgetsHidden" value="false" id="fetchBudgetsHidden" readonly>
+          <input type="checkbox" name="fetchBudgets" value="true" class="checkbox pull-left" id="fetchBudgets" readonly>
+        </div>
+        <div class="col-md-6 form-group">
+          <label for="fetchTransactions">&nbsp;Transactions</label>
+          <input type="hidden" name="fetchTransactionsHidden" value="false" id="fetchTransactionsHidden">
+          <input type="checkbox" name="fetchTransactions" value="true" class="checkbox pull-left" id="fetchTransactions">
+        </div>
+<!--        <div class="col-md-6 form-group">
+          <label for="fetchBills">&nbsp;Bills</label>
+          <input type="hidden" name="fetchBillsHidden" value="false" id="fetchBillsHidden">
+          <input type="checkbox" name="fetchBills" value="true" class="checkbox pull-left" id="fetchBills">
+        </div>
+        <div class="col-md-6 form-group">
+          <label for="fetchInvestments">&nbsp;Investments</label>
+          <input type="hidden" name="fetchInvestmentsHidden" value="false" id="fetchInvestmentsHidden">
+          <input type="checkbox" name="fetchInvestments" value="true" class="checkbox pull-left" id="fetchInvestments">
+        </div>
+        <div class="col-md-6 form-group">
+          <label for="initiateRefresh">&nbsp;Initiate Refresh</label>
+          <input type="hidden" name="initiateRefreshHidden" value="false" id="initiateRefreshHidden">
+          <input type="checkbox" name="initiateRefresh" value="true" class="checkbox pull-left" id="initiateRefresh">
+        </div> -->
+      </div>
+    </div>
+
     <button type="submit" class="btn btn-primary pull-right">Save Configuration</button>
   </div>
 </form>
@@ -471,6 +518,19 @@
         $('#schedulerGroup').show();
         $('#schedulerCronGroup').show();
         $('#schedulerFrequencyGroup').hide();
+      }
+    });
+
+    $.each(data['selector'], function(key, value) {
+      if ($('#'+key).attr('type') == 'text' || $('#'+key).attr('type') == 'password') {
+        $('form input').filter(function() {
+          return key == this.id;
+        }).val(value);
+      }
+      else if ($('#'+key).attr('type') == 'checkbox' && value == true) {
+        $('form input').filter(function() {
+          return key == this.id;
+        }).prop('checked', true);
       }
     });
 

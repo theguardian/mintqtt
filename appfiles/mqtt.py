@@ -46,7 +46,7 @@ def establish_sensor(*args, **kwargs):
 		'state_topic': kwargs['mqtt_prefix']+'/sensor/'+sensor_id+'/state'
 	}
 	if 'attributes' in kwargs and kwargs['attributes']:
-		sensorConfig['attributes']=kwargs['attributes']
+		sensorConfig['json_attributes_topic']=kwargs['mqtt_prefix']+'/sensor/'+sensor_id+'/attributes'
 	if 'units' in kwargs and kwargs['units']:
 		sensorConfig['unit_of_measurement']=kwargs['units']
 	if 'icon' in kwargs and kwargs['icon']:

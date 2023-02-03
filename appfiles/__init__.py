@@ -16,16 +16,16 @@ INTUIT_ACCOUNT = None
 MFA_METHOD = 'sms'
 MFA_TOKEN = None
 MFA_INPUT_CALLBACK = None
-HEADLESS = False
+HEADLESS = True
 IMAP_ACCOUNT = None
 IMAP_PASSWORD = None
 IMAP_SERVER = None
 IMAP_FOLDER = 'INBOX'
-SESSION_PATH = None
+SESSION_PATH = '/srv/mintqtt/data/cache'
 WAIT_FOR_SYNC = False
 WAIT_FOR_SYNC_TIMEOUT = 300
 FAIL_IF_STALE = True
-USE_CHROMEDRIVER_ON_PATH = False
+USE_CHROMEDRIVER_ON_PATH = True
 DRIVER = None
 QUIT_DRIVER_ON_FAIL = True
 
@@ -42,6 +42,15 @@ SCHEDULER_UNITS = None
 SCHEDULER_CRON = None
 RUN_ON_BOOT = False
 
+FETCH_ACCOUNTS = False
+FETCH_BUDGETS = False
+FETCH_NET_WORTH = False
+FETCH_CREDIT_SCORE = False
+FETCH_BILLS = False
+FETCH_INVESTMENTS = False
+FETCH_TRANSACTIONS = False
+INITIATE_REFRESH = False
+
 def injectVarCheck(CFG):
 
     global GIT_USER, GIT_REPO, GIT_BRANCH, \
@@ -51,12 +60,14 @@ def injectVarCheck(CFG):
     FAIL_IF_STALE, USE_CHROMEDRIVER_ON_PATH, DRIVER, QUIT_DRIVER_ON_FAIL, \
     MQTT_CLIENT_ID, MQTT_BROKER_ADDR, MQTT_BROKER_PORT, MQTT_USERNAME, MQTT_PASSWORD, \
     MQTT_PREFIX, SCHEDULER_TYPE, SCHEDULER_FREQUENCY, SCHEDULER_UNITS, SCHEDULER_CRON, \
-    RUN_ON_BOOT
+    RUN_ON_BOOT, FETCH_ACCOUNTS, FETCH_BUDGETS, FETCH_NET_WORTH, FETCH_CREDIT_SCORE, \
+    FETCH_BILLS, FETCH_INVESTMENTS, FETCH_TRANSACTIONS, INITIATE_REFRESH
 
     CheckSection(CFG, 'source')
     CheckSection(CFG, 'mintapi')
     CheckSection(CFG, 'mqtt')
     CheckSection(CFG, 'scheduler')
+    CheckSection(CFG, 'selector')
 
     GIT_USER = check_setting_str(CFG, 'source', 'gitUser', 'theguardian')
     GIT_REPO = check_setting_str(CFG, 'source', 'gitRepo', 'mintqtt')
@@ -73,11 +84,11 @@ def injectVarCheck(CFG):
     IMAP_PASSWORD = check_setting_str(CFG, 'mintapi', 'imapPassword', '')
     IMAP_SERVER = check_setting_str(CFG, 'mintapi', 'imapServer', '')
     IMAP_FOLDER = check_setting_str(CFG, 'mintapi', 'imapFolder', 'INBOX')
-    SESSION_PATH = check_setting_str(CFG, 'mintapi', 'sessionPath', '')
+    SESSION_PATH = check_setting_str(CFG, 'mintapi', 'sessionPath', '/srv/mintqtt/data/cache')
     WAIT_FOR_SYNC = check_setting_bool(CFG, 'mintapi', 'waitForSync', False)
     WAIT_FOR_SYNC_TIMEOUT = check_setting_int(CFG, 'mintapi', 'waitForSyncTimeout', 300)
     FAIL_IF_STALE = check_setting_bool(CFG, 'mintapi', 'failIfStale', True)
-    USE_CHROMEDRIVER_ON_PATH = check_setting_bool(CFG, 'mintapi', 'useChromedriverOnPath', False)
+    USE_CHROMEDRIVER_ON_PATH = check_setting_bool(CFG, 'mintapi', 'useChromedriverOnPath', True)
     DRIVER = check_setting_str(CFG, 'mintapi', 'driver', '')
     QUIT_DRIVER_ON_FAIL = check_setting_bool(CFG, 'mintapi', 'quitDriverOnFail', True)
 
@@ -93,6 +104,15 @@ def injectVarCheck(CFG):
     SCHEDULER_UNITS = check_setting_str(CFG, 'scheduler', 'schedulerUnits', 'hours')
     SCHEDULER_CRON = check_setting_str(CFG, 'scheduler', 'schedulerCron', '0 */8 * * *')
     RUN_ON_BOOT = check_setting_bool(CFG, 'scheduler', 'runOnBoot', False)
+
+    FETCH_ACCOUNTS = check_setting_bool(CFG, 'selector', 'fetchAccounts', False)
+    FETCH_BUDGETS = check_setting_bool(CFG, 'selector', 'fetchBudgets', False)
+    FETCH_NET_WORTH = check_setting_bool(CFG, 'selector', 'fetchNetWorth', False)
+    FETCH_CREDIT_SCORE = check_setting_bool(CFG, 'selector', 'fetchCreditScore', False)
+    FETCH_BILLS = check_setting_bool(CFG, 'selector', 'fetchBills', False)
+    FETCH_INVESTMENTS = check_setting_bool(CFG, 'selector', 'fetchInvestments', False)
+    FETCH_TRANSACTIONS = check_setting_bool(CFG, 'selector', 'fetchTransactions', False)
+    INITIATE_REFRESH = check_setting_bool(CFG, 'selector', 'initiateRefresh', False)
 
 def injectDbSchema():
 
@@ -145,6 +165,16 @@ def injectApiConfigGet():
             "schedulerUnits": SCHEDULER_UNITS,
             "schedulerCron": SCHEDULER_CRON,
             "runOnBoot": RUN_ON_BOOT
+        },
+        "selector": {
+            "fetchAccounts": FETCH_ACCOUNTS,
+            "fetchBudgets": FETCH_BUDGETS,
+            "fetchNetWorth": FETCH_NET_WORTH,
+            "fetchCreditScore": FETCH_CREDIT_SCORE,
+            "fetchBills": FETCH_BILLS,
+            "fetchInvestments": FETCH_INVESTMENTS,
+            "fetchTransactions": FETCH_TRANSACTIONS,
+            "initiateRefresh": INITIATE_REFRESH
         }
     }
 
@@ -159,7 +189,8 @@ def injectApiConfigPut(kwargs, errorList):
     FAIL_IF_STALE, USE_CHROMEDRIVER_ON_PATH, DRIVER, QUIT_DRIVER_ON_FAIL, \
     MQTT_CLIENT_ID, MQTT_BROKER_ADDR, MQTT_BROKER_PORT, MQTT_USERNAME, MQTT_PASSWORD, \
     MQTT_PREFIX, SCHEDULER_TYPE, SCHEDULER_FREQUENCY, SCHEDULER_UNITS, SCHEDULER_CRON, \
-    RUN_ON_BOOT
+    RUN_ON_BOOT, FETCH_ACCOUNTS, FETCH_BUDGETS, FETCH_NET_WORTH, FETCH_CREDIT_SCORE, \
+    FETCH_BILLS, FETCH_INVESTMENTS, FETCH_TRANSACTIONS, INITIATE_REFRESH
 
 
     if 'gitUser' in kwargs:
@@ -214,7 +245,7 @@ def injectApiConfigPut(kwargs, errorList):
     if 'imapFolder' in kwargs:
         IMAP_FOLDER = kwargs.pop('imapFolder', '')
     if 'sessionPath' in kwargs:
-        SESSION_PATH = kwargs.pop('sessionPath', '')
+        SESSION_PATH = kwargs.pop('sessionPath', '/srv/mintqtt/data/cache')
     if 'waitForSync' in kwargs:
         WAIT_FOR_SYNC = kwargs.pop('waitForSync', False) == 'true'
     elif 'waitForSyncHidden' in kwargs:
@@ -231,9 +262,9 @@ def injectApiConfigPut(kwargs, errorList):
     elif 'failIfStaleHidden' in kwargs:
         FAIL_IF_STALE = kwargs.pop('failIfStaleHidden', True) == 'true'
     if 'useChromedriverOnPath' in kwargs:
-        USE_CHROMEDRIVER_ON_PATH = kwargs.pop('useChromedriverOnPath', False) == 'true'
+        USE_CHROMEDRIVER_ON_PATH = kwargs.pop('useChromedriverOnPath', True) == 'true'
     elif 'useChromedriverOnPathHidden' in kwargs:
-        USE_CHROMEDRIVER_ON_PATH = kwargs.pop('useChromedriverOnPathHidden', False) == 'true'
+        USE_CHROMEDRIVER_ON_PATH = kwargs.pop('useChromedriverOnPathHidden', True) == 'true'
     if 'driver' in kwargs:
         DRIVER = kwargs.pop('driver', '')
     if 'quitDriverOnFail' in kwargs:
@@ -284,6 +315,39 @@ def injectApiConfigPut(kwargs, errorList):
     elif 'runOnBootHidden' in kwargs:
         RUN_ON_BOOT = kwargs.pop('runOnBootHidden', True) == 'true'
 
+    if 'fetchAccounts' in kwargs:
+        FETCH_ACCOUNTS = kwargs.pop('fetchAccounts', True) == 'true'
+    elif 'fetchAccountsHidden' in kwargs:
+        FETCH_ACCOUNTS = kwargs.pop('fetchAccountsHidden', True) == 'true'
+    if 'fetchBudgets' in kwargs:
+        FETCH_BUDGETS = kwargs.pop('fetchBudgets', True) == 'true'
+    elif 'fetchBudgetsHidden' in kwargs:
+        FETCH_BUDGETS = kwargs.pop('fetchBudgetsHidden', True) == 'true'
+    if 'fetchNetWorth' in kwargs:
+        FETCH_NET_WORTH = kwargs.pop('fetchNetWorth', True) == 'true'
+    elif 'fetchNetWorthHidden' in kwargs:
+        FETCH_NET_WORTH = kwargs.pop('fetchNetWorthHidden', True) == 'true'
+    if 'fetchCreditScore' in kwargs:
+        FETCH_CREDIT_SCORE = kwargs.pop('fetchCreditScore', True) == 'true'
+    elif 'fetchCreditScoreHidden' in kwargs:
+        FETCH_CREDIT_SCORE = kwargs.pop('fetchCreditScoreHidden', True) == 'true'
+    if 'fetchBills' in kwargs:
+        FETCH_BILLS = kwargs.pop('fetchBills', True) == 'true'
+    elif 'fetchBillsHidden' in kwargs:
+        FETCH_BILLS = kwargs.pop('fetchBillsHidden', True) == 'true'
+    if 'fetchInvestments' in kwargs:
+        FETCH_INVESTMENTS = kwargs.pop('fetchInvestments', True) == 'true'
+    elif 'fetchInvestmentsHidden' in kwargs:
+        FETCH_INVESTMENTS = kwargs.pop('fetchInvestmentsHidden', True) == 'true'
+    if 'fetchTransactions' in kwargs:
+        FETCH_TRANSACTIONS = kwargs.pop('fetchTransactions', True) == 'true'
+    elif 'fetchTransactionsHidden' in kwargs:
+        FETCH_TRANSACTIONS = kwargs.pop('fetchTransactionsHidden', True) == 'true'
+    if 'initiateRefresh' in kwargs:
+        INITIATE_REFRESH = kwargs.pop('initiateRefresh', True) == 'true'
+    elif 'initiateRefreshHidden' in kwargs:
+        INITIATE_REFRESH = kwargs.pop('initiateRefreshHidden', True) == 'true'
+
     return kwargs, errorList
 
 def injectVarWrite(new_config):
@@ -327,5 +391,15 @@ def injectVarWrite(new_config):
     new_config['scheduler']['schedulerUnits'] = SCHEDULER_UNITS
     new_config['scheduler']['schedulerCron'] = SCHEDULER_CRON
     new_config['scheduler']['runOnBoot'] = RUN_ON_BOOT
+
+    new_config['selector'] = {}
+    new_config['selector']['fetchAccounts'] = FETCH_ACCOUNTS
+    new_config['selector']['fetchBudgets'] = FETCH_BUDGETS
+    new_config['selector']['fetchNetWorth'] = FETCH_NET_WORTH
+    new_config['selector']['fetchCreditScore'] = FETCH_CREDIT_SCORE
+    new_config['selector']['fetchBills'] = FETCH_BILLS
+    new_config['selector']['fetchInvestments'] = FETCH_INVESTMENTS
+    new_config['selector']['fetchTransactions'] = FETCH_TRANSACTIONS
+    new_config['selector']['initiateRefresh'] = INITIATE_REFRESH
 
     return new_config

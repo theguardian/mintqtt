@@ -3,6 +3,8 @@ from cherrystrap import logger, formatter
 import mintapi
 from appfiles.mqtt import establish_sensor, update_values, update_attributes
 import time
+import json
+from collections import defaultdict
 
 def mintqtt_vars():
 
@@ -50,9 +52,7 @@ def mintqtt_vars():
 
     return mintqtt_args, mintqtt_kwargs
 
-def run_mint(*args, **kwargs):
-
-	logger.info("Opening connection with Mint and gathering data")
+def fetch_accounts(*args, **kwargs):
 
 	mqtt_kwargs = {}
 	mqtt_kwargs['mqtt_broker_addr'] = kwargs['mqtt_broker_addr']
@@ -69,6 +69,173 @@ def run_mint(*args, **kwargs):
 	del kwargs['mqtt_client_id']
 	del kwargs['mqtt_prefix']
 
+	# Connect to Mint
+	logger.info("Opening connection with Mint and gathering data")
+	mint = mintapi.Mint(args[0], args[1], **kwargs)
+
+	try:
+		account_data = mint.get_account_data()
+		for item in account_data:
+			if item['accountStatus'] == "ACTIVE":
+				accounts_sensor_kwargs = mqtt_kwargs
+				accounts_sensor_kwargs['attributes'] = True
+				accounts_sensor_kwargs['units'] = 'USD'
+				accounts_sensor_kwargs['icon'] = 'mdi:currency-usd'
+				establish_sensor(item['name'], **accounts_sensor_kwargs)
+				if item['type'] == "CreditAccount" or item['type'] == "LoanAccount":
+					balance = float(item['currentBalance']) * -1
+				else:
+					balance = float(item['currentBalance'])
+				update_values(item['name'], str(round(balance)), **mqtt_kwargs)
+				accounts_attributes_kwargs = mqtt_kwargs
+				accounts_attributes_kwargs['attrArray'] = item
+				update_attributes(item['name'], **accounts_attributes_kwargs)
+	except Exception as e:
+		logger.error("Could not publish Account Data to MQTT:" % e)
+
+	logger.info("Closing connection with Mint")
+	mint.close()
+
+	return
+
+def fetch_budgets(*args, **kwargs):
+
+	mqtt_kwargs = {}
+	mqtt_kwargs['mqtt_broker_addr'] = kwargs['mqtt_broker_addr']
+	mqtt_kwargs['mqtt_broker_port'] = kwargs['mqtt_broker_port']
+	mqtt_kwargs['mqtt_username'] = kwargs['mqtt_username']
+	mqtt_kwargs['mqtt_password'] = kwargs['mqtt_password']
+	mqtt_kwargs['mqtt_client_id'] = kwargs['mqtt_client_id']
+	mqtt_kwargs['mqtt_prefix'] = kwargs['mqtt_prefix']
+
+	del kwargs['mqtt_broker_addr']
+	del kwargs['mqtt_broker_port']
+	del kwargs['mqtt_username']
+	del kwargs['mqtt_password']
+	del kwargs['mqtt_client_id']
+	del kwargs['mqtt_prefix']
+
+	# Connect to Mint
+	logger.info("Opening connection with Mint and gathering data")
+	mint = mintapi.Mint(args[0], args[1], **kwargs)
+
+	budget_data = mint.get_budget_data()
+
+	combinedArr = defaultdict(dict)
+
+	#===== This Month Only ========
+
+	# begin build of array only for budgets that presently exist (this month)
+	for d in budget_data:
+		if d['budgetDate'][:-3] == time.strftime("%Y-%m"):
+			combinedArr[d['category']['name']].update(d)
+
+	#==============================
+
+	#===== Year to Date ===========
+
+	spentYearToDate = defaultdict(float)
+	budgetedYearToDate = defaultdict(float)
+	for d in budget_data:
+		if d['budgetDate'][:-6] == time.strftime("%Y"):
+			spentYearToDate[d['category']['name']] += d['amount']
+			budgetedYearToDate[d['category']['name']] += d['budgetAmount']
+	spentYearToDateList = [{
+		'name': name, 
+		'spentYearToDate': round(amount)
+		} for name, amount in spentYearToDate.items()]
+	budgetedYearToDateList = [{
+		'name': name, 
+		'budgetedYearToDate': round(budgetAmount)
+		} for name, budgetAmount in budgetedYearToDate.items()]
+
+	for l in (spentYearToDateList, budgetedYearToDateList):
+		for elem in l:
+			combinedArr[elem['name']].update(elem)
+
+	#==============================
+
+	#===== Last Twelve Months =====
+
+	spentPreviousTwelve = defaultdict(float)
+	budgetedPreviousTwelve = defaultdict(float)
+	for d in budget_data:
+		spentPreviousTwelve[d['category']['name']] += d['amount']
+		budgetedPreviousTwelve[d['category']['name']] += d['budgetAmount']
+	spentPreviousTwelveList = [{
+		'name': name, 
+		'spentPreviousTwelve': round(amount)
+		} for name, amount in spentPreviousTwelve.items()]
+	budgetedPreviousTwelveList = [{
+		'name': name, 
+		'budgetedPreviousTwelve': round(budgetAmount)
+		} for name, budgetAmount in budgetedPreviousTwelve.items()]
+
+	for l in (spentPreviousTwelveList, budgetedPreviousTwelveList):
+		for elem in l:
+			combinedArr[elem['name']].update(elem)
+
+	#==============================
+
+	budgetArr = list(combinedArr.values())
+
+	# remove multi-month budgets if payment is not due this month (note: decided to keep this)
+	# budgetArr = [x for x in budgetArr if (x.get('type') != "MultimonthBudget" or x.get('paymentDate')[:-3] == time.strftime("%Y-%m"))]
+
+	# opportunity to display this sensor as monthly, year to date, or past twelve months as configurable setting
+	# and/or display sensor as progress against budget in terms of dollars or percentage
+	try:
+		for item in budgetArr:
+			if "type" in item:
+				if item['name'] == 'Root':
+					friendlyName = "Everything Else"
+				else:
+					friendlyName = item['name'].replace("&","and")
+					# below example is to measure percentage of budget spent year-to-date (may be configurable)
+					#budgetPerformance = round((int(item['spentYearToDate']) / int(item['budgetedYearToDate'])) * 100)
+					# instead sending raw monthly budget remaining to sensor, at least to start
+					budgetPerformance = round(int(item['budgetAmount']) - int(item['amount']))
+
+				budgets_sensor_kwargs = mqtt_kwargs
+				budgets_sensor_kwargs['attributes'] = True
+				#budgets_sensor_kwargs['units'] = '%'
+				budgets_sensor_kwargs['units'] = 'USD'
+				budgets_sensor_kwargs['icon'] = 'mdi:plus-minus-box'
+				
+				establish_sensor(friendlyName, **budgets_sensor_kwargs)
+				update_values(friendlyName, str(budgetPerformance), **mqtt_kwargs)
+				budgets_attributes_kwargs = mqtt_kwargs
+				budgets_attributes_kwargs['attrArray'] = item
+				update_attributes(friendlyName, **budgets_attributes_kwargs)
+	except Exception as e:
+		logger.error("Could not publish Budget Data to MQTT:" % e)
+
+	#==============================
+
+	logger.info("Closing connection with Mint")
+	mint.close()
+
+	return
+
+def fetch_net_worth(*args, **kwargs):
+
+	mqtt_kwargs = {}
+	mqtt_kwargs['mqtt_broker_addr'] = kwargs['mqtt_broker_addr']
+	mqtt_kwargs['mqtt_broker_port'] = kwargs['mqtt_broker_port']
+	mqtt_kwargs['mqtt_username'] = kwargs['mqtt_username']
+	mqtt_kwargs['mqtt_password'] = kwargs['mqtt_password']
+	mqtt_kwargs['mqtt_client_id'] = kwargs['mqtt_client_id']
+	mqtt_kwargs['mqtt_prefix'] = kwargs['mqtt_prefix']
+
+	del kwargs['mqtt_broker_addr']
+	del kwargs['mqtt_broker_port']
+	del kwargs['mqtt_username']
+	del kwargs['mqtt_password']
+	del kwargs['mqtt_client_id']
+	del kwargs['mqtt_prefix']
+
+	# Connect to Mint
+	logger.info("Opening connection with Mint and gathering data")
 	mint = mintapi.Mint(args[0], args[1], **kwargs)
 
 	try:
@@ -85,6 +252,32 @@ def run_mint(*args, **kwargs):
 	except Exception as e:
 		logger.error("Could not publish Net Worth to MQTT:" % e)
 
+	logger.info("Closing connection with Mint")
+	mint.close()
+
+	return
+
+def fetch_credit_score(*args, **kwargs):
+
+	mqtt_kwargs = {}
+	mqtt_kwargs['mqtt_broker_addr'] = kwargs['mqtt_broker_addr']
+	mqtt_kwargs['mqtt_broker_port'] = kwargs['mqtt_broker_port']
+	mqtt_kwargs['mqtt_username'] = kwargs['mqtt_username']
+	mqtt_kwargs['mqtt_password'] = kwargs['mqtt_password']
+	mqtt_kwargs['mqtt_client_id'] = kwargs['mqtt_client_id']
+	mqtt_kwargs['mqtt_prefix'] = kwargs['mqtt_prefix']
+
+	del kwargs['mqtt_broker_addr']
+	del kwargs['mqtt_broker_port']
+	del kwargs['mqtt_username']
+	del kwargs['mqtt_password']
+	del kwargs['mqtt_client_id']
+	del kwargs['mqtt_prefix']
+
+	# Connect to Mint
+	logger.info("Opening connection with Mint and gathering data")
+	mint = mintapi.Mint(args[0], args[1], **kwargs)
+
 	try:
 		credit_score = mint.get_credit_score_data()
 	except Exception as e:
@@ -99,41 +292,180 @@ def run_mint(*args, **kwargs):
 	except Exception as e:
 		logger.error("Could not publish Credit Score to MQTT:" % e)
 
+	logger.info("Closing connection with Mint")
+	mint.close()
 
-	# bills_data = mint.get_bills()
-	# print(bills_data)
+	return
 
-	# account_data = mint.get_account_data()
-	# print(account_data)
+def fetch_bills(*args, **kwargs):
 
-	# budget_data = mint.get_budget_data()
-	# print(budget_data)
+	mqtt_kwargs = {}
+	mqtt_kwargs['mqtt_broker_addr'] = kwargs['mqtt_broker_addr']
+	mqtt_kwargs['mqtt_broker_port'] = kwargs['mqtt_broker_port']
+	mqtt_kwargs['mqtt_username'] = kwargs['mqtt_username']
+	mqtt_kwargs['mqtt_password'] = kwargs['mqtt_password']
+	mqtt_kwargs['mqtt_client_id'] = kwargs['mqtt_client_id']
+	mqtt_kwargs['mqtt_prefix'] = kwargs['mqtt_prefix']
 
-	# investment_data = mint.get_investment_data()
-	# print(investment_data)
+	del kwargs['mqtt_broker_addr']
+	del kwargs['mqtt_broker_port']
+	del kwargs['mqtt_username']
+	del kwargs['mqtt_password']
+	del kwargs['mqtt_client_id']
+	del kwargs['mqtt_prefix']
 
-	# transaction_data = mint.get_transaction_data() # as pandas dataframe
-	# print(transaction_data)
+	# Connect to Mint
+	logger.info("Opening connection with Mint and gathering data")
+	mint = mintapi.Mint(args[0], args[1], **kwargs)
 
-	# accounts = mint.get_account_data()
-	# for account in accounts:
-	# 	mint.get_transaction_data(id=account["id"])
+	logger.info(mint.get_bills())
 
 	logger.info("Closing connection with Mint")
 	mint.close()
 
 	return
 
-def schedule_mint():
-	[mintqtt_args, mintqtt_kwargs] = mintqtt_vars()
-	scheduled_job = run_mint(*mintqtt_args, **mintqtt_kwargs)
+def fetch_investments(*args, **kwargs):
 
-	return scheduled_job
+	mqtt_kwargs = {}
+	mqtt_kwargs['mqtt_broker_addr'] = kwargs['mqtt_broker_addr']
+	mqtt_kwargs['mqtt_broker_port'] = kwargs['mqtt_broker_port']
+	mqtt_kwargs['mqtt_username'] = kwargs['mqtt_username']
+	mqtt_kwargs['mqtt_password'] = kwargs['mqtt_password']
+	mqtt_kwargs['mqtt_client_id'] = kwargs['mqtt_client_id']
+	mqtt_kwargs['mqtt_prefix'] = kwargs['mqtt_prefix']
+
+	del kwargs['mqtt_broker_addr']
+	del kwargs['mqtt_broker_port']
+	del kwargs['mqtt_username']
+	del kwargs['mqtt_password']
+	del kwargs['mqtt_client_id']
+	del kwargs['mqtt_prefix']
+
+	# Connect to Mint
+	logger.info("Opening connection with Mint and gathering data")
+	mint = mintapi.Mint(args[0], args[1], **kwargs)
+
+	logger.info(mint.get_investment_data())
+
+	logger.info("Closing connection with Mint")
+	mint.close()
+
+	return
+
+def fetch_transactions(*args, **kwargs):
+
+	mqtt_kwargs = {}
+	mqtt_kwargs['mqtt_broker_addr'] = kwargs['mqtt_broker_addr']
+	mqtt_kwargs['mqtt_broker_port'] = kwargs['mqtt_broker_port']
+	mqtt_kwargs['mqtt_username'] = kwargs['mqtt_username']
+	mqtt_kwargs['mqtt_password'] = kwargs['mqtt_password']
+	mqtt_kwargs['mqtt_client_id'] = kwargs['mqtt_client_id']
+	mqtt_kwargs['mqtt_prefix'] = kwargs['mqtt_prefix']
+
+	del kwargs['mqtt_broker_addr']
+	del kwargs['mqtt_broker_port']
+	del kwargs['mqtt_username']
+	del kwargs['mqtt_password']
+	del kwargs['mqtt_client_id']
+	del kwargs['mqtt_prefix']
+
+	# Connect to Mint
+	logger.info("Opening connection with Mint and gathering data")
+	mint = mintapi.Mint(args[0], args[1], **kwargs)
+
+	try:
+		transaction_data = mint.get_transaction_data()
+	except Exception as e:
+		logger.error("Could not connect to Mint for Transaction data:" % e)
+
+	try:
+		transactionArr = {}
+		spentToday = 0
+		count = 0
+		for d in transaction_data:
+			if d['date'] == time.strftime("%Y-%m-%d"):
+				transactionArr[count] = {
+					'merchant': d['description'],
+					'amount': float(d['amount']),
+					'category': d['category']['name']
+					}
+				# this gives more information, but most of it is irrelevant clutter...
+				#transactionArr[count] = d
+				spentToday += float(d['amount'])
+				count += 1
+
+		transactions_sensor_kwargs = mqtt_kwargs
+		transactions_sensor_kwargs['attributes'] = True
+		transactions_sensor_kwargs['units'] = 'USD'
+		transactions_sensor_kwargs['icon'] = 'mdi:network-pos'
+		establish_sensor("Posted Transactions", **transactions_sensor_kwargs)
+		update_values("Posted Transactions", str(round(float(spentToday))), **mqtt_kwargs)
+		transactions_attributes_kwargs = mqtt_kwargs
+		transactions_attributes_kwargs['attrArray'] = transactionArr
+		update_attributes("Posted Transactions", **transactions_attributes_kwargs)
+	except Exception as e:
+		logger.error("Could not publish Transaction Data to MQTT:" % e)
+
+	logger.info("Closing connection with Mint")
+	mint.close()
+
+	return
+
+def initiate_refresh(*args, **kwargs):
+
+	mqtt_kwargs = {}
+	mqtt_kwargs['mqtt_broker_addr'] = kwargs['mqtt_broker_addr']
+	mqtt_kwargs['mqtt_broker_port'] = kwargs['mqtt_broker_port']
+	mqtt_kwargs['mqtt_username'] = kwargs['mqtt_username']
+	mqtt_kwargs['mqtt_password'] = kwargs['mqtt_password']
+	mqtt_kwargs['mqtt_client_id'] = kwargs['mqtt_client_id']
+	mqtt_kwargs['mqtt_prefix'] = kwargs['mqtt_prefix']
+
+	del kwargs['mqtt_broker_addr']
+	del kwargs['mqtt_broker_port']
+	del kwargs['mqtt_username']
+	del kwargs['mqtt_password']
+	del kwargs['mqtt_client_id']
+	del kwargs['mqtt_prefix']
+
+	# Connect to Mint
+	logger.info("Opening connection with Mint and gathering data")
+	mint = mintapi.Mint(args[0], args[1], **kwargs)
+
+	mint.initiate_account_refresh()
+
+	logger.info("Closing connection with Mint")
+	mint.close()
+
+	return
+
+def job_list():
+	[mintqtt_args, mintqtt_kwargs] = mintqtt_vars()
+
+	if appfiles.FETCH_NET_WORTH:
+		fetch_net_worth(*mintqtt_args, **mintqtt_kwargs)
+	if appfiles.FETCH_CREDIT_SCORE:
+		fetch_credit_score(*mintqtt_args, **mintqtt_kwargs)
+	if appfiles.FETCH_ACCOUNTS:
+		fetch_accounts(*mintqtt_args, **mintqtt_kwargs)
+	if appfiles.FETCH_BUDGETS:
+		fetch_budgets(*mintqtt_args, **mintqtt_kwargs)
+	if appfiles.FETCH_BILLS:
+		fetch_bills(*mintqtt_args, **mintqtt_kwargs)
+	if appfiles.FETCH_INVESTMENTS:
+		fetch_investments(*mintqtt_args, **mintqtt_kwargs)
+	if appfiles.FETCH_TRANSACTIONS:
+		fetch_transactions(*mintqtt_args, **mintqtt_kwargs)
+	if appfiles.INITIATE_REFRESH:
+		initiate_refresh(*mintqtt_args, **mintqtt_kwargs)
+
+	return
 
 def delete_sensors():
 	update_values('Net Worth', '')
 	update_values('Credit Score', '')
 
 if __name__ == '__main__':
-	run_mint()
+	schedule_mint()
 	

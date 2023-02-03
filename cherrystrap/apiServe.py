@@ -83,7 +83,7 @@ class settings(object):
         #     pass
 
         if 'appName' in kwargs:
-            cherrystrap.APP_NAME = kwargs.pop('appName', 'CherryStrap')
+            cherrystrap.APP_NAME = kwargs.pop('appName', 'mintqtt')
         if 'logDir' in kwargs:
             cherrystrap.LOGDIR = kwargs.pop('logDir', None)
         if 'httpHost' in kwargs:

@@ -11,7 +11,7 @@ LABEL maintainer="justin.evans@gmail.com"
 # Establish base directory on image
 WORKDIR /srv
 
-# Clone CherryStrap
+# Clone mintqtt
 RUN git clone https://github.com/theguardian/mintqtt
 
 # Establish Workdir

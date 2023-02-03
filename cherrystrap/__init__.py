@@ -164,7 +164,7 @@ def initialize():
         if HTTP_PORT < 21 or HTTP_PORT > 65535:
             HTTP_PORT = 7889
 
-        APP_NAME = check_setting_str(CFG, 'Server', 'appName', 'CherryStrap')
+        APP_NAME = check_setting_str(CFG, 'Server', 'appName', 'mintqtt')
         HTTP_ROOT = check_setting_str(CFG, 'Server', 'httpRoot', '')
         HTTP_HOST = check_setting_str(CFG, 'Server', 'httpHost', '0.0.0.0')
         HTTPS_ENABLED = check_setting_bool(CFG, 'Server', 'sslEnabled', False)
@@ -386,23 +386,29 @@ def start():
                 SCHED.add_job(versioncheck.checkGithub, gitInterval)
             
             if build_scheduler():
+                #===============================================================
+                # Import app's routineschedulers
                 try:
-                    from appfiles.mintqtt import schedule_mint
-                    SCHED.add_job(lambda: schedule_mint(), build_scheduler())
+                    from appfiles.mintqtt import job_list
+                    SCHED.add_job(lambda: job_list(), build_scheduler())
                 except Exception as e:
                     logger.error("Can't build scheduled job(s): %s" % e)
+                #===============================================================
 
             SCHED.start()
             for job in SCHED.get_jobs():
                 logger.info("Job scheduled: %s" % job)
             scheduler_started = True
 
+            #===============================================================
+            # Import app's routine if run on boot selected
             if appfiles.RUN_ON_BOOT:
                 try:
-                    from appfiles.mintqtt import schedule_mint
-                    schedule_mint()
+                    from appfiles.mintqtt import job_list
+                    job_list()
                 except Exception as e:
                     logger.error("Can't start job: %s" % e)
+            #===============================================================
 
         except Exception as e:
             logger.error("Can't start scheduled job(s): %s" % e)
