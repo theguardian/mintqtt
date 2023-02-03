@@ -10,28 +10,28 @@ This application primarily leverages:
 ## How does it work?
 **mintqtt** is a fairly straightforward interpretation of MintAPI. The returned information is sent as a preformatted MQTT message to the configured MQTT broker. From there, any consumer of MQTT information can subscribe. The original author integrates this data with [Home Assistant](https://github.com/home-assistant) utilizing MQTT prefix `homeassistant` 
 
-**Net Worth**
+**Net Worth**\
 If enabled, creates a sensor called `Net Worth` and displays your net worth in dollars
 
-**Credit Score**
+**Credit Score**\
 If enabled, creates a sensor called `Credit Score` and displays your score as a number
 
-**Accounts**
+**Accounts**\
 If enabled, creates one sensor per `ACTIVE` account whose sensor name corresponds to your friendly name configured in Mint and displays the account's present value in dollars. Sensor attributes include all account-specific data returned by MintAPI
 
-**Budgets**
+**Budgets**\
 If enabled, creates one sensor per budget (with corresponding name) as configured in Mint. Each sensor is currently hardcoded to display the present month's *remaining budget* in dollars. Sensor attributes include all budget-specific data returned by MintAPI
 
-**Transactions**
+**Transactions**\
 If enabled, creates one sensor called `Posted Transactions` that sums the total dollar amount of all transactions posted on the present day. Sensor attributes include `merchant`, `amount`, and `category` per posted transaction
 
-**Bills**
+**Bills**\
 Not currently developed
 
-**Investments**
+**Investments**\
 Not currently developed
 
-**Initiate Refresh**
+**Initiate Refresh**\
 Not currently developed 
 
 ## Installation Instructions 
@@ -55,30 +55,28 @@ By default, this web application runs on port 7889, but is configurable at the a
 ## Settings (the cogwheel in the top right corner)
 This is where all the magic happens. The UI exists simply to make configuration changes or view the logs for troubleshooting purposes. There is **no UI functionality** outside of setting variables or viewing logs!
 
-**Server**
+**Server**\
 Configuration settings for application name, port, log directory, etc. It is unlikely that these settings need to be changed
 
-**Interface**
+**Interface**\
 Set a username and password for the UI if desired. `Theme` is undeveloped
 
-**Database**
+**Database**\
 Unused for this application
 
-
-**Update**
+**Update**\
 Optionally subscribe to upstream mintqtt app changes on GitHub
 
-
-**MintAPI**
+**MintAPI**\
 MintAPI-specific configuration settings. More information available at [MintAPI on GitHub](https://github.com/mintapi/mintapi) 
 
-**MQTT**
+**MQTT**\
 MQTT-specific configuration settings. More information available at [Paho MQTT on GitHub](https://github.com/eclipse/paho.mqtt.python)
 
-**Scheduler**
+**Scheduler**\
 Choose to retrieve/post data on an interval, on a cron schedule, and/or to run on boot. Retrieve from Mint and post to MQTT are currently bundled as a sequential one-shot
 
-**Data Selection**
+**Data Selection**\
 Checkboxes to select what Mint information you would like posted to MQTT broker
 
 ## Known Issues & Limitations
