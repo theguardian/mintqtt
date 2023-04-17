@@ -87,7 +87,7 @@ Checkboxes to select what Mint information you would like posted to MQTT broker
 * All known issues and limitations for upstream packages (e.g. MintAPI, Paho MQTT, etc are inherited)
 
 ## Disclaimers
-Please understand that the original author is a hobbyist coder with very little formal training in software development. This is built as a hobby project and there are no warranties stated or implied. Some code is likely to be superfluous or "unpythonic" as this entire web application framework has been stitched together over a number of years. Are there faster, better, , more-secure, higher-quality ways to build this app? You betcha! Is that something the original author has time for or wants to continue maintaining? Unlikely!
+Please understand that the original author is a hobbyist coder with very little formal training in software development. This is built as a hobby project and there are no warranties stated or implied. Some code is likely to be superfluous or "unpythonic" as this entire web application framework has been stitched together over a number of years. Are there faster, better, more-secure, higher-quality ways to build this app? You betcha! Is that something the original author has time for or wants to continue maintaining? Unlikely!
 
 ## License and Copyright
 

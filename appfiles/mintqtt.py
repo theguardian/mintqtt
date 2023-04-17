@@ -14,12 +14,13 @@ def mintqtt_vars():
         mintqtt_kwargs['intuit_account'] = appfiles.INTUIT_ACCOUNT
     if appfiles.MFA_METHOD:
         mintqtt_kwargs['mfa_method'] = appfiles.MFA_METHOD
+        if appfiles.MFA_METHOD == 'soft-token':
+            mintqtt_kwargs['mfa_token'] = formatter.decode(appfiles.MFA_TOKEN)
+        else:
+            if appfiles.MFA_INPUT_CALLBACK:
+                mintqtt_kwargs['mfa_input_callback'] = appfiles.MFA_INPUT_CALLBACK
     else:
         pass
-    if appfiles.MFA_TOKEN:
-        mintqtt_kwargs['mfa_token'] = formatter.decode(appfiles.MFA_TOKEN)
-    if appfiles.MFA_INPUT_CALLBACK:
-        mintqtt_kwargs['mfa_input_callback'] = appfiles.MFA_INPUT_CALLBACK
     if appfiles.IMAP_ACCOUNT:
         mintqtt_kwargs['imap_account'] = appfiles.IMAP_ACCOUNT
     if appfiles.IMAP_PASSWORD:
