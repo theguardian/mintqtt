@@ -240,7 +240,11 @@ def fetch_net_worth(*args, **kwargs):
 	mint = mintapi.Mint(args[0], args[1], **kwargs)
 
 	try:
-		net_worth = mint.get_net_worth_data()
+		net_worth_list = mint.get_net_worth_data()
+		# returns list of dictionaries by month in ascending chronological month order
+		net_worth_dict_last = net_worth_list[-1]
+		# retrieves dictionary from most current month
+		net_worth_today = net_worth_dict_last['net']
 	except Exception as e:
 		logger.error("Could not connect to Mint for Net Worth data:" % e)
 	try:
@@ -249,7 +253,7 @@ def fetch_net_worth(*args, **kwargs):
 		net_worth_sensor_kwargs['units'] = 'USD'
 		net_worth_sensor_kwargs['icon'] = 'mdi:currency-usd'
 		establish_sensor('Net Worth', **net_worth_sensor_kwargs)
-		update_values('Net Worth', str(round(float(net_worth))), **mqtt_kwargs)
+		update_values('Net Worth', str(round(float(net_worth_today))), **mqtt_kwargs)
 	except Exception as e:
 		logger.error("Could not publish Net Worth to MQTT:" % e)
 
