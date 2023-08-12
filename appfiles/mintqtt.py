@@ -201,7 +201,13 @@ def fetch_budgets(*args, **kwargs):
 				budgets_sensor_kwargs['attributes'] = True
 				#budgets_sensor_kwargs['units'] = '%'
 				budgets_sensor_kwargs['units'] = 'USD'
-				budgets_sensor_kwargs['icon'] = 'mdi:plus-minus-box'
+				try:
+					if int(budgetPerformance) < 0:
+						budgets_sensor_kwargs['icon'] = 'mdi:alert-minus'
+					else:
+						budgets_sensor_kwargs['icon'] = 'mdi:plus-thick'
+				except:	
+					budgets_sensor_kwargs['icon'] = 'mdi:plus-minus-box'
 				
 				establish_sensor(friendlyName, **budgets_sensor_kwargs)
 				update_values(friendlyName, str(budgetPerformance), **mqtt_kwargs)
