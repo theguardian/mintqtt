@@ -28,11 +28,11 @@ RUN add-apt-repository ppa:saiarcot895/chromium-beta -y
 RUN apt-get update && apt-get install chromium-browser
 
 # But for some reason we can't install chromedriver for Rpi4
-wget https://github.com/electron/electron/releases/download/v26.3.0/chromedriver-v26.3.0-linux-arm64.zip
-mkdir chromedriver_tmp
-unzip chromedriver-v26.3.0-linux-arm64.zip -d chromedriver_tmp
-mv chromedriver_tmp/chromedriver /usr/lib/chromium-browser
-chmod +x /usr/lib/chromium-browser/chromedriver
+RUN wget https://github.com/electron/electron/releases/download/v26.3.0/chromedriver-v26.3.0-linux-arm64.zip
+RUN mkdir chromedriver_tmp
+RUN unzip chromedriver-v26.3.0-linux-arm64.zip -d chromedriver_tmp
+RUN mv chromedriver_tmp/chromedriver /usr/lib/chromium-browser
+RUN chmod +x /usr/lib/chromium-browser/chromedriver
 
 # Have to add chromedriver to the PATH
 ENV PATH "$PATH:/usr/lib/chromium-browser"
