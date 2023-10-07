@@ -7,7 +7,7 @@ ENV TZ=UTC
 
 # Install important packages (git, python, etc)
 RUN apt-get update && apt-get install python3.10 python3.10-dev python3.10-distutils python3-pip git gcc tzdata \
-software-properties-common libmariadb-dev-compat libmariadb-dev -y
+software-properties-common libmariadb-dev-compat libmariadb-dev pkg-config -y
 
 # Identify the maintainer of an image
 LABEL maintainer="justin.evans@gmail.com"
