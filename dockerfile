@@ -7,7 +7,7 @@ ENV TZ=UTC
 
 # Install important packages (git, python, etc)
 RUN apt-get update && apt-get install python3.10 python3.10-dev python3.10-distutils python3-pip git gcc tzdata \
-software-properties-common libmariadb-dev-compat libmariadb-dev pkg-config -y
+software-properties-common libmariadb-dev-compat libmariadb-dev pkg-config wget unzip -y
 
 # Identify the maintainer of an image
 LABEL maintainer="justin.evans@gmail.com"
@@ -25,7 +25,14 @@ WORKDIR /srv/mintqtt
 RUN add-apt-repository ppa:saiarcot895/chromium-beta -y
 
 # Now we can install Chromium without snap
-RUN apt-get update && apt-get install chromium-browser chromium-chromedriver -y
+RUN apt-get update && apt-get install chromium-browser
+
+# But for some reason we can't install chromedriver for Rpi4
+wget https://github.com/electron/electron/releases/download/v26.3.0/chromedriver-v26.3.0-linux-arm64.zip
+mkdir chromedriver_tmp
+unzip chromedriver-v26.3.0-linux-arm64.zip -d chromedriver_tmp
+mv chromedriver_tmp/chromedriver /usr/lib/chromium-browser
+chmod +x /usr/lib/chromium-browser/chromedriver
 
 # Have to add chromedriver to the PATH
 ENV PATH "$PATH:/usr/lib/chromium-browser"
