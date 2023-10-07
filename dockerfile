@@ -27,8 +27,8 @@ RUN add-apt-repository ppa:saiarcot895/chromium-beta -y
 # Now we can install Chromium without snap
 RUN apt-get update && apt-get install chromium-browser chromium-chromedriver -y
 
-# Have to add chromedriver to the PATH (this does not appear to work)
-ENV PATH "$PATH:/usr/lib/chromium-browser/"
+# Have to add chromedriver to the PATH
+ENV PATH "$PATH:/usr/lib/chromium-browser"
 
 # Install necessary python packages
 RUN pip3 install -r requirements.txt
