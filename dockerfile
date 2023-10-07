@@ -25,7 +25,7 @@ WORKDIR /srv/mintqtt
 RUN add-apt-repository ppa:saiarcot895/chromium-beta -y
 
 # Now we can install Chromium without snap
-RUN apt-get update && apt-get install chromium-browser
+RUN apt-get update && apt-get install chromium-browser -y
 
 # But for some reason we can't install chromedriver for Rpi4
 RUN wget https://github.com/electron/electron/releases/download/v26.3.0/chromedriver-v26.3.0-linux-arm64.zip
