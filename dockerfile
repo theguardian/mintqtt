@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install chromium-browser -y
 # But for some reason we can't install chromedriver for Rpi4
 RUN wget https://github.com/electron/electron/releases/download/v22.2.0/chromedriver-v22.2.0-linux-arm64.zip
 RUN mkdir chromedriver_tmp
-RUN unzip chromedriver-v26.3.0-linux-arm64.zip -d chromedriver_tmp
+RUN unzip chromedriver-v22.2.0-linux-arm64.zip -d chromedriver_tmp
 RUN mv chromedriver_tmp/chromedriver /usr/lib/chromium-browser
 RUN chmod +x /usr/lib/chromium-browser/chromedriver
 
