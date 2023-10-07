@@ -4,7 +4,6 @@ configobj
 httplib2
 mako
 mintapi
-mysqlclient
 paho-mqtt
 passlib
 portend
