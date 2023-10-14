@@ -2,7 +2,7 @@
 FROM ghcr.io/mintapi/mintapi:latest
 
 # Install important packages (git, python, etc)
-RUN apt-get update && apt-get install python3.10 python3.10-dev python3.10-distutils python3-pip git gcc tzdata \
+RUN sudo apt-get update && sudo apt-get install python3.10 python3.10-dev python3.10-distutils python3-pip git gcc tzdata \
 software-properties-common libmariadb-dev-compat libmariadb-dev pkg-config wget unzip -y
 
 # Identify the maintainer of an image
