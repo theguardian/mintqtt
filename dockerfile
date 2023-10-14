@@ -27,10 +27,10 @@ RUN add-apt-repository ppa:saiarcot895/chromium-beta -y
 # Now we can install Chromium without snap
 RUN apt-get update && apt-get install chromium-browser -y
 
-# But for some reason we can't install chromedriver for Rpi4
-RUN wget https://github.com/electron/electron/releases/download/v22.2.0/chromedriver-v22.2.0-linux-arm64.zip
+# amd64 only since arm64 chromedriver is hard to come by
+RUN wget https://chromedriver.storage.googleapis.com/108.0.5359.22/chromedriver_linux64.zip
 RUN mkdir chromedriver_tmp
-RUN unzip chromedriver-v22.2.0-linux-arm64.zip -d chromedriver_tmp
+RUN unzip chromedriver_linux64.zip -d chromedriver_tmp
 RUN mv chromedriver_tmp/chromedriver /usr/lib/chromium-browser
 RUN chmod +x /usr/lib/chromium-browser/chromedriver
 
