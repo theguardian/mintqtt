@@ -213,7 +213,7 @@ def injectApiConfigPut(kwargs, errorList):
     if 'intuitAccount' in kwargs:
         INTUIT_ACCOUNT = kwargs.pop('intuitAccount', '')
     if 'mfaMethod' in kwargs:
-        MFA_METHOD = kwargs.pop('mfaMethod', '')
+        MFA_METHOD = kwargs.pop('mfaMethod', 'sms')
     if 'mfaToken' in kwargs:
         mfaTokenProcess = kwargs.pop('mfaToken', None)
         if mfaTokenProcess != MFA_TOKEN and mfaTokenProcess != "":
