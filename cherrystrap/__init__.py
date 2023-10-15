@@ -354,7 +354,7 @@ def config_write():
 
 def build_scheduler():
     scheduleRunner = None
-    if appfiles.SCHEDULER_TYPE != "":
+    if appfiles.SCHEDULER_TYPE != "disabled":
         if appfiles.SCHEDULER_TYPE == 'interval' and appfiles.SCHEDULER_UNITS == 'hours':
             scheduleRunner = IntervalTrigger(weeks=0, days=0, hours=appfiles.SCHEDULER_FREQUENCY, minutes=0, seconds=0, start_date=None, end_date=None, timezone=None)
         elif appfiles.SCHEDULER_TYPE == 'interval' and appfiles.SCHEDULER_UNITS == 'minutes':
